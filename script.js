@@ -26,6 +26,7 @@ const champions = [
     { name: "Vel'Koz", file: "champions/velkoz.html" },
     { name: "Fizz", file: "champions/fizz.html" },
     { name: "Ambessa", file: "champions/ambessa.html" },
+    { name: "Garen", file: "champions/garen.html" },
 ];
 
 champions.sort((a, b) => a.name.localeCompare(b.name));
@@ -80,4 +81,5 @@ document.addEventListener("click", (e) => {
         results.innerHTML = "";
         container.classList.remove("active");
     }
+
 });
