@@ -1,7 +1,65 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
   <url>
     <loc>https://buliddiff.pages.dev/</loc>
+    <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
+
+  <url><loc>https://buliddiff.pages.dev/champions/aatrox.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/ahri.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/akali.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/akshan.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/alistar.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/ambessa.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/ambessa_jg.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/amumu.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/anivia.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/annie.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/aphelios.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/ashe.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/aurelion_sol.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/aurora.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/azir.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/bard.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/bel_veth.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/blitzcrank.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/brand.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/braum.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/briar.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/caitlyn.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/caitlyn_top.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/camille.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/cassiopeia.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/cho_gath.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/corki.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/darius.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/diana.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/draven.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/dr_mundo.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/ekko.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/elise.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/evelynn.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/fizz.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/garen.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/gwen.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/katarina.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/kayle.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/lux.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/lux_mid.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/mel.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/mordekaiser.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/nunu_and_willump.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/pyke.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/seraphine.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/seraphine_mid.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/sett.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/velkoz.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/velkoz_mid.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/vi.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/xin_zhao.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/yasuo.html</loc></url>
+  <url><loc>https://buliddiff.pages.dev/champions/yone.html</loc></url>
+
 </urlset>
