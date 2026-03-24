@@ -3,10 +3,12 @@
     height: max-content;
     margin: 20px;
     text-align: center;
-    background-color: #15437ef1;
+    background-color: rgba(10, 20, 40, 0.979);
     border-radius: 30px;
     padding: 20px;
-    box-shadow: 0px 0px 20px #1039aa;
+    box-shadow: 0px 0px 100px #0c2874;
+    color: #c9aa71;
+    border: 1px solid #c9aa71;
 }
 
 .back {
@@ -34,6 +36,7 @@ img {
     width: 400px;
     margin-bottom: 10px;
     margin-top: 10px;
+    border: 1px solid #c9aa71;
 }
 
 b {
@@ -47,12 +50,14 @@ h2 {
 
 .lane {
     display: inline-block;
-    color: #fa60f2;
+    color: #a8a2c4;
     text-decoration: none;
     font-weight: 800;
-    background-color: #460542;
+    background-color: #160129;
     padding: 15px;
     border-radius: 10px;
+    margin-bottom: 8px;
+    border: 1px solid #c9aa71;
 }
 
 .container {
