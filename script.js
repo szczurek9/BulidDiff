@@ -32,6 +32,23 @@ const champions = [
     { name: "Alistar", file: "champions/alistar.html" },
     { name: "Amumu", file: "champions/amumu.html" },
     { name: "Anivia", file: "champions/anivia.html" },
+    { name: "Annie", file: "champions/annie.html" },
+    { name: "Ashe", file: "champions/ashe.html" },
+    { name: "Azir", file: "champions/azir.html" },
+    { name: "Bard", file: "champions/bard.html" },
+    { name: "Bel'Veth", file: "champions/bel_veth.html" },
+    { name: "Blitzcrank", file: "champions/blitzcrank.html" },
+    { name: "Brand", file: "champions/brand.html" },
+    { name: "Braum", file: "champions/braum.html" },
+    { name: "Camille", file: "champions/camille.html" },
+    { name: "Cassiopeia", file: "champions/cassiopeia.html" },
+    { name: "Cho'Gath", file: "champions/cho_gath.html" },
+    { name: "Corki", file: "champions/corki.html" },
+    { name: "Darius", file: "champions/darius.html" },
+    { name: "Dr. Mundo", file: "champions/dr_mundo.html" },
+    { name: "Draven", file: "champions/draven.html" },
+    { name: "Ekko", file: "champions/ekko.html" },
+    { name: "Elise", file: "champions/elise.html" },
 ];
 
 champions.sort((a, b) => a.name.localeCompare(b.name));
