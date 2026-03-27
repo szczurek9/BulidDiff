@@ -49,6 +49,7 @@ const champions = [
     { name: "Draven", file: "champions/draven.html" },
     { name: "Ekko", file: "champions/ekko.html" },
     { name: "Elise", file: "champions/elise.html" },
+    { name: "Morgana", file: "champions/morgana.html" },
 ];
 
 champions.sort((a, b) => a.name.localeCompare(b.name));
