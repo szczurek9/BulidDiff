@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Statki Geometryczne</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Exo+2:ital,wght@0,300;0,400;0,600;1,300&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+<style>
+:root {
+  --ocean: #020f1e;
+  --ocean2: #041528;
+  --cyan: #00e5ff;
+  --red: #ff3b3b;
+  --orange: #ff8c00;
+  --green: #00e676;
+  --yellow: #ffd600;
+  --white: #e8f4ff;
+  --grid-line: rgba(0,229,255,0.18);
+  --sunk: #ff6b00;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+background: var(-ocean);
+background-image:
+radial-gradient(ellipse at 20% 50%, rgba(0,60,120,0.4) 0%, transparent 60%),
+radial-gradient(ellipse at 80% 20%, rgba(0,30,80,0.5) 0%, transparent 50%);
+font-family: 'Exo 2', sans-serif;
+color: var(-white);
+min-height: 100vh;
+overflow-x: hidden;
+}
+body::after {
+content: '';
+position: fixed; inset: 0;
+background: repeating-linear-gradient(0deg,rgba(0,0,0,0.025) 0px,rgba(0,0,0,0.025) 1px,transparent 1px,transparent 3px);
+pointer-events: none; z-index: 999;
+}
+
+/* ── TOPBAR ── */
+#topbar {
+position: sticky; top: 0; z-index: 100;
+background: rgba(2,15,30,0.97);
+border-bottom: 1px solid rgba(0,229,255,0.2);
+padding: 8px 14px;
+display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+#topbar::after {
+content:''; position:absolute; bottom:0; left:0; right:0; height:1px;
+background:linear-gradient(90deg,transparent,var(-cyan),transparent);
+}
+.tb-title {
+font-family:'Orbitron',monospace;
+font-size:clamp(12px,2.5vw,20px); font-weight:900;
+color:var(-cyan); text-shadow:0 0 14px rgba(0,229,255,0.4);
+white-space:nowrap; flex-shrink:0;
+}
+.tb-stats { display:flex; gap:10px; flex-shrink:0; }
+.tb-stat { text-align:center; min-width:32px; }
+.tb-val {
+font-family:'Orbitron',monospace;
+font-size:clamp(13px,2.5vw,20px); font-weight:700;
+display:block; line-height:1;
+}
+.tb-lbl {
+font-family:'Share Tech Mono',monospace;
+font-size:8px; letter-spacing:1px; text-transform:uppercase;
+color:rgba(255,255,255,0.35);
+}
+
+/* ── MAIN ── */
+#game-wrap { max-width:1100px; margin:0 auto; padding:10px; display:flex; flex-direction:column; gap:10px; }
+
+.main-layout {
+display:grid;
+grid-template-columns:1fr 310px;
+gap:10px; align-items:start;
+}
+@media(max-width:700px) { .main-layout { grid-template-columns:1fr; } }
+
+/* ── OCEAN PANEL ── */
+.ocean-panel {
+background:var(-ocean2);
+border:1px solid rgba(0,229,255,0.2);
+border-radius:6px; padding:12px;
+position:relative;
+}
+.ocean-panel::before {
+content:''; position:absolute; inset:0; border-radius:6px;
+background:linear-gradient(rgba(0,229,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,0.025) 1px,transparent 1px);
+background-size:40px 40px; pointer-events:none;
+}
+.ocean-title {
+font-family:'Orbitron',monospace; font-size:10px; letter-spacing:2px;
+color:rgba(0,229,255,0.45); text-transform:uppercase; margin-bottom:10px; position:relative;
+}
+
+/* ── GRID ── */
+/* Use a pure CSS table-like grid with fixed label column */
+.grid-container {
+display:grid;
+grid-template-columns:20px repeat(8,1fr);
+gap:2px; position:relative; width:100%;
+}
+.gl-corner { /* empty */ }
+.gl-col {
+font-family:'Share Tech Mono',monospace; font-size:10px;
+color:rgba(0,229,255,0.4); text-align:center;
+display:flex; align-items:center; justify-content:center;
+height:18px;
+}
+.gl-row {
+font-family:'Share Tech Mono',monospace; font-size:10px;
+color:rgba(0,229,255,0.4);
+display:flex; align-items:center; justify-content:flex-end; padding-right:3px;
+}
+
+.cell {
+/* Square via padding-bottom trick */
+position:relative; width:100%; padding-bottom:100%;
+border:1px solid var(-grid-line); border-radius:2px;
+background:rgba(10,42,74,0.65); cursor:pointer;
+transition:background 0.15s, border-color 0.15s;
+overflow:hidden;
+}
+.cell-inner {
+position:absolute; inset:0;
+display:flex; align-items:center; justify-content:center;
+font-size:clamp(10px,2.5vw,18px);
+pointer-events:none;
+}
+.cell:hover:not(.shot):not(.active-target) { background:rgba(0,229,255,0.18); border-color:rgba(0,229,255,0.6); }
+.cell.active-target { border-color:var(-yellow)!important; background:rgba(255,214,0,0.09)!important; animation:tgtPulse 0.9s ease-in-out infinite; }
+.cell.hit  { background:rgba(255,59,59,0.28); border-color:var(-red); cursor:default; }
+.cell.miss { background:rgba(255,255,255,0.04); border-color:rgba(255,255,255,0.08); cursor:default; }
+.cell.sunk { background:rgba(255,107,0,0.22); border-color:var(-sunk); cursor:default; }
+.cell.shot { cursor:default!important; }
+
+@keyframes tgtPulse { 0%,100%{box-shadow:0 0 7px rgba(255,214,0,0.3)} 50%{box-shadow:0 0 18px rgba(255,214,0,0.75)} }
+
+/* FX overlays */
+.cell-fx { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; z-index:10; font-size:clamp(12px,3vw,22px); }
+.fx-explode { animation:fxExplode 0.55s ease both; }
+.fx-splash  { animation:fxSplash  0.55s ease both; }
+@keyframes fxExplode { 0%{transform:scale(0.2);opacity:1} 60%{transform:scale(1.4);opacity:1} 100%{transform:scale(1);opacity:0} }
+@keyframes fxSplash  { 0%{transform:scale(0.3);opacity:1} 100%{transform:scale(1.5);opacity:0} }
+
+/* ── SIDE ── */
+.side-col { display:flex; flex-direction:column; gap:10px; }
+
+.panel-box {
+background:var(-ocean2); border:1px solid rgba(0,229,255,0.18);
+border-radius:6px; padding:12px 14px; position:relative;
+}
+.panel-box::before {
+content:''; position:absolute; top:0; left:0; right:0; height:1px;
+background:linear-gradient(90deg,transparent,var(-cyan),transparent);
+}
+.panel-title {
+font-family:'Orbitron',monospace; font-size:9px; letter-spacing:3px;
+color:rgba(0,229,255,0.45); text-transform:uppercase; margin-bottom:10px;
+}
+
+/* ── FLEET ── */
+.fleet-grid { display:flex; flex-direction:column; gap:5px; }
+@media(max-width:700px) { .fleet-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; } }
+
+.fleet-row {
+display:flex; align-items:center; gap:8px;
+padding:7px 9px; border:1px solid rgba(255,255,255,0.06);
+border-radius:4px; transition:border-color 0.2s;
+}
+.fleet-row.sunk-ship { opacity:0.5; border-color:rgba(255,107,0,0.2); }
+.fi { font-size:15px; flex-shrink:0; }
+.finfo { flex:1; min-width:0; }
+.fname { font-size:11px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.fname.sunk { text-decoration:line-through; color:rgba(255,255,255,0.3); }
+.fhp { display:flex; gap:3px; margin-top:3px; }
+.hp { width:6px; height:6px; border-radius:50%; background:var(-cyan); transition:background 0.3s; }
+.hp.hit { background:var(-red); }
+.fstatus { font-family:'Share Tech Mono',monospace; font-size:9px; white-space:nowrap; }
+.fstatus.alive   { color:var(-green); }
+.fstatus.damaged { color:var(-yellow); }
+.fstatus.sunk    { color:var(-red); }
+
+/* ── QUESTION ── */
+#question-panel { min-height:100px; }
+.idle-msg { text-align:center; padding:22px 8px; font-family:'Share Tech Mono',monospace; font-size:11px; color:rgba(0,229,255,0.3); line-height:2; }
+.idle-icon { font-size:30px; margin-bottom:8px; opacity:0.3; }
+
+.q-target { display:flex; align-items:center; gap:7px; font-family:'Share Tech Mono',monospace; font-size:11px; color:var(-yellow); letter-spacing:2px; text-transform:uppercase; margin-bottom:7px; }
+.q-dot { width:7px; height:7px; border-radius:50%; background:var(-yellow); box-shadow:0 0 6px var(-yellow); animation:blink 1s infinite; flex-shrink:0; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+.q-cat { font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:2px; text-transform:uppercase; color:rgba(0,229,255,0.45); margin-bottom:6px; }
+.q-text { font-size:13px; line-height:1.6; margin-bottom:7px; font-style:italic; }
+.q-math { background:rgba(0,229,255,0.05); border:1px solid rgba(0,229,255,0.15); border-radius:3px; padding:8px 12px; font-size:13px; line-height:1.9; margin-bottom:9px; overflow-x:auto; }
+
+.hint-box { background:rgba(255,140,0,0.07); border:1px dashed rgba(255,140,0,0.4); border-radius:3px; padding:8px 10px; font-size:12px; line-height:1.6; color:rgba(255,210,120,0.9); margin-bottom:9px; animation:fadeIn 0.25s ease; }
+.hint-lbl { font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:2px; color:var(-orange); margin-bottom:4px; }
+
+.ans-row { display:flex; gap:7px; margin-bottom:7px; }
+.ans-inp {
+flex:1; min-width:0;
+background:rgba(0,10,30,0.85); border:1.5px solid rgba(0,229,255,0.3);
+border-radius:4px; padding:9px 12px;
+font-family:'Share Tech Mono',monospace;
+font-size:16px; /* 16px prevents iOS zoom */
+color:var(-cyan); outline:none;
+transition:border-color 0.15s, box-shadow 0.15s;
+}
+.ans-inp::placeholder { color:rgba(0,229,255,0.2); font-size:12px; }
+.ans-inp:focus { border-color:var(-cyan); box-shadow:0 0 10px rgba(0,229,255,0.18); }
+.ans-inp.ok  { border-color:var(-green); color:var(-green); }
+.ans-inp.bad { border-color:var(-red);   color:var(-red); }
+.ans-inp:disabled { opacity:0.7; }
+
+.btn-fire {
+background:var(-red); color:#fff; border:none;
+padding:9px 14px; font-family:'Orbitron',monospace; font-size:11px; font-weight:700;
+letter-spacing:1px; text-transform:uppercase; cursor:pointer; border-radius:4px;
+box-shadow:0 0 14px rgba(255,59,59,0.4); transition:all 0.15s; white-space:nowrap;
+}
+.btn-fire:hover:not(:disabled) { background:#ff1a1a; box-shadow:0 0 22px rgba(255,59,59,0.65); }
+.btn-fire:disabled { background:rgba(255,59,59,0.3); box-shadow:none; cursor:not-allowed; }
+
+.btn-hint-q {
+background:transparent; color:var(-orange);
+border:1px solid rgba(255,140,0,0.4); padding:6px 10px;
+font-family:'Share Tech Mono',monospace; font-size:10px;
+cursor:pointer; border-radius:3px; transition:all 0.15s; display:inline-block;
+}
+.btn-hint-q:hover:not(:disabled) { background:rgba(255,140,0,0.12); }
+.btn-hint-q:disabled { opacity:0.4; cursor:not-allowed; }
+
+.fb-ok  { color:var(-green); font-family:'Orbitron',monospace; font-size:12px; letter-spacing:0.5px; }
+.fb-bad { color:var(-red);   font-family:'Orbitron',monospace; font-size:12px; letter-spacing:0.5px; }
+.fb-wrap { margin-top:8px; animation:fadeIn 0.2s ease; }
+
+.sol-box { margin-top:8px; background:rgba(255,255,255,0.025); border-left:3px solid var(-orange); padding:10px 12px; font-size:12px; line-height:1.8; animation:fadeIn 0.3s ease; }
+.sol-lbl { font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:2px; color:var(-orange); margin-bottom:6px; }
+.sol-step { color:rgba(255,255,255,0.75); margin-bottom:2px; }
+.sol-ans { font-family:'Share Tech Mono',monospace; color:var(-green); margin-top:6px; border-top:1px solid rgba(255,255,255,0.08); padding-top:5px; }
+
+.btn-next-q {
+width:100%; margin-top:10px;
+background:rgba(0,229,255,0.08); color:var(-cyan);
+border:1px solid rgba(0,229,255,0.25); padding:10px; border-radius:4px;
+font-family:'Orbitron',monospace; font-size:10px; letter-spacing:2px;
+cursor:pointer; text-transform:uppercase; transition:all 0.15s;
+}
+.btn-next-q:hover { background:rgba(0,229,255,0.18); border-color:var(-cyan); }
+
+/* ── TOAST ── */
+#toast {
+position:fixed; top:60px; left:50%;
+transform:translateX(-50%) translateY(-6px);
+padding:9px 20px; border-radius:4px;
+font-family:'Orbitron',monospace; font-size:11px; font-weight:700;
+letter-spacing:1.5px; text-align:center; z-index:400; pointer-events:none;
+opacity:0; transition:opacity 0.2s, transform 0.2s;
+max-width:90vw; white-space:nowrap;
+}
+#toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+#toast.t-hit  { background:rgba(255,59,59,0.93); border:1px solid var(-red); color:#fff; box-shadow:0 0 22px rgba(255,59,59,0.5); }
+#toast.t-miss { background:rgba(4,21,40,0.97); border:1px solid rgba(0,229,255,0.35); color:var(-cyan); }
+#toast.t-sunk { background:rgba(255,107,0,0.93); border:1px solid var(-sunk); color:#fff; box-shadow:0 0 30px rgba(255,107,0,0.6); }
+
+/* ── INTRO ── */
+#intro {
+position:fixed; inset:0; background:var(-ocean); z-index:300;
+display:flex; align-items:center; justify-content:center; flex-direction:column;
+text-align:center; padding:20px; overflow-y:auto;
+}
+.intro-title { font-family:'Orbitron',monospace; font-size:clamp(26px,5vw,48px); font-weight:900; color:var(-cyan); text-shadow:0 0 36px rgba(0,229,255,0.55); letter-spacing:4px; margin-bottom:2px; }
+.intro-sub { font-size:13px; color:rgba(255,255,255,0.45); font-style:italic; margin-bottom:24px; }
+.intro-card { background:rgba(0,229,255,0.04); border:1px solid rgba(0,229,255,0.2); border-radius:8px; padding:18px 22px; max-width:460px; width:100%; text-align:left; margin-bottom:18px; }
+.intro-rule { display:flex; gap:12px; align-items:flex-start; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.05); font-size:13px; line-height:1.5; }
+.intro-rule:last-child { border:none; }
+.rn { font-family:'Orbitron',monospace; font-size:14px; color:var(-cyan); font-weight:700; flex-shrink:0; min-width:20px; }
+.ships-row { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-bottom:20px; max-width:420px; }
+.sc { background:rgba(0,229,255,0.06); border:1px solid rgba(0,229,255,0.2); border-radius:5px; padding:7px 12px; text-align:center; }
+.sc-i { font-size:18px; margin-bottom:2px; }
+.sc-n { font-weight:600; font-size:11px; }
+.sc-s { font-family:'Share Tech Mono',monospace; font-size:9px; color:rgba(0,229,255,0.5); }
+
+.btn-play {
+background:linear-gradient(135deg,var(-red),#c80000); color:#fff; border:none;
+padding:14px 40px; font-family:'Orbitron',monospace; font-size:15px; font-weight:900;
+letter-spacing:3px; cursor:pointer; border-radius:5px; text-transform:uppercase;
+box-shadow:0 0 26px rgba(255,59,59,0.5); transition:all 0.2s;
+}
+.btn-play:hover { transform:translateY(-2px); box-shadow:0 0 42px rgba(255,59,59,0.7); }
+
+/* ── END ── */
+#end-screen {
+display:none; position:fixed; inset:0; background:rgba(2,15,30,0.97); z-index:200;
+align-items:center; justify-content:center; flex-direction:column;
+text-align:center; padding:20px; overflow-y:auto;
+}
+#end-screen.show { display:flex; animation:fadeIn 0.4s ease; }
+.end-trophy { font-size:clamp(48px,10vw,72px); margin-bottom:8px; }
+.end-title { font-family:'Orbitron',monospace; font-size:clamp(14px,3.5vw,24px); font-weight:900; letter-spacing:2px; margin-bottom:6px; }
+.end-score { font-family:'Orbitron',monospace; font-size:clamp(48px,10vw,80px); font-weight:900; color:var(-yellow); line-height:1; }
+.end-sub { font-size:13px; color:rgba(255,255,255,0.45); margin-bottom:18px; }
+.end-card { background:rgba(0,229,255,0.04); border:1px solid rgba(0,229,255,0.15); border-radius:6px; padding:14px 20px; margin-bottom:18px; min-width:240px; max-width:380px; width:100%; }
+.end-row { display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px solid rgba(255,255,255,0.05); font-size:13px; }
+.end-row:last-child { border:none; }
+.end-pts { font-family:'Share Tech Mono',monospace; font-weight:600; }
+.btn-restart { background:var(-cyan); color:var(-ocean); border:none; padding:13px 30px; font-family:'Orbitron',monospace; font-size:13px; font-weight:700; letter-spacing:2px; cursor:pointer; border-radius:4px; box-shadow:0 0 20px rgba(0,229,255,0.4); transition:all 0.2s; }
+.btn-restart:hover { box-shadow:0 0 36px rgba(0,229,255,0.7); transform:translateY(-2px); }
+
+@keyframes fadeIn { from{opacity:0}to{opacity:1} }
+
+@media(max-width:480px) {
+#topbar { padding:7px 10px; }
+.tb-stats { gap:8px; }
+#game-wrap { padding:7px; gap:8px; }
+.ocean-panel,.panel-box { padding:9px; }
+}
+</style>
+
+</head>
+<body>
+
+<!-- ── INTRO ── -->
+
+<div id="intro">
+  <div class="intro-title">⚓ STATKI</div>
+  <div style="font-family:'Orbitron',monospace;font-size:12px;color:var(--cyan);letter-spacing:4px;margin-bottom:4px">GEOMETRYCZNE</div>
+  <div class="intro-sub">Odpowiedz poprawnie → zatop wrogą flotę!</div>
+
+  <div class="ships-row">
+    <div class="sc"><div class="sc-i">🚢</div><div class="sc-n">Lotniskowiec</div><div class="sc-s">4 pola</div></div>
+    <div class="sc"><div class="sc-i">⛴️</div><div class="sc-n">Krążownik</div><div class="sc-s">3 pola</div></div>
+    <div class="sc"><div class="sc-i">🛥️</div><div class="sc-n">Niszczyciel A</div><div class="sc-s">2 pola</div></div>
+    <div class="sc"><div class="sc-i">🛥️</div><div class="sc-n">Niszczyciel B</div><div class="sc-s">2 pola</div></div>
+    <div class="sc"><div class="sc-i">🚤</div><div class="sc-n">Łódź</div><div class="sc-s">1 pole</div></div>
+  </div>
+
+  <div class="intro-card">
+    <div class="intro-rule"><span class="rn">①</span><span>Kliknij komórkę na mapie → pojawi się pytanie z geometrii.</span></div>
+    <div class="intro-rule"><span class="rn">②</span><span>Poprawna odpowiedź = <strong style="color:var(--red)">TRAFIENIE 💥</strong>. Błędna = <strong style="color:var(--cyan)">PUDŁO 🌊</strong>.</span></div>
+    <div class="intro-rule"><span class="rn">③</span><span>Trafienie: <b style="color:var(--yellow)">+10 pkt</b>. Z podpowiedzią: <b style="color:var(--yellow)">+6 pkt</b>. Pudło: 0 pkt.</span></div>
+    <div class="intro-rule"><span class="rn">④</span><span>Zatop wszystkie 5 statków by wygrać. Możesz strzelać w każde pole!</span></div>
+  </div>
+
+<button class="btn-play" onclick="startGame()">🎯 OGIEŃ!</button>
+
+</div>
+
+<!-- ── TOAST ── -->
+
+<div id="toast"></div>
+
+<!-- ── TOPBAR ── -->
+
+<div id="topbar" style="display:none">
+  <div class="tb-title">⚓ STATKI GEO</div>
+  <div class="tb-stats">
+    <div class="tb-stat"><span class="tb-val" style="color:var(--cyan)"  id="s-score">0</span><div class="tb-lbl">Punkty</div></div>
+    <div class="tb-stat"><span class="tb-val" style="color:var(--green)" id="s-hits">0</span><div class="tb-lbl">Trafień</div></div>
+    <div class="tb-stat"><span class="tb-val" style="color:var(--red)"   id="s-miss">0</span><div class="tb-lbl">Pudłeł</div></div>
+    <div class="tb-stat"><span class="tb-val" style="color:var(--yellow)"id="s-sunk">0</span><div class="tb-lbl">Zatopionych</div></div>
+  </div>
+</div>
+
+<!-- ── GAME ── -->
+
+<div id="game-wrap" style="display:none">
+  <div class="main-layout">
+
+```
+<div class="ocean-panel">
+  <div class="ocean-title">▶ Mapa wroga - kliknij komórkę by atakować</div>
+  <div class="grid-container" id="grid"></div>
+</div>
+
+<div class="side-col">
+  <div class="panel-box">
+    <div class="panel-title">▶ Flota wroga</div>
+    <div class="fleet-grid" id="fleet"></div>
+  </div>
+  <div class="panel-box" id="qpanel">
+    <div class="panel-title">▶ Cel i pytanie</div>
+    <div class="idle-msg"><div class="idle-icon">🎯</div>Wybierz komórkę<br>na mapie by atakować</div>
+  </div>
+</div>
+```
+
+  </div>
+</div>
+
+<!-- ── END ── -->
+
+<div id="end-screen">
+  <div class="end-trophy" id="e-trophy">🏅</div>
+  <div class="end-title"  id="e-title">MISJA ZAKOŃCZONA</div>
+  <div class="end-score"  id="e-score">0</div>
+  <div class="end-sub"    id="e-sub">punktów</div>
+  <div class="end-card"   id="e-card"></div>
+  <button class="btn-restart" onclick="location.reload()">↺ NOWA MISJA</button>
+</div>
+
+<script>
+// ════════════════════════════════════════════════
+// QUESTIONS
+// ════════════════════════════════════════════════
+const QS = [
+  {cat:'📐 Odległość',text:'Oblicz odległość AB.',math:'\\(A(-3,\\ -1),\\ B(-5,\\ -1)\\)',hint:'Oba punkty mają y=−1 - odległość = |x_B−x_A|.',answers:['2'],steps:['\\(d=|-5-(-3)|=2\\)'],ans:'d = 2'},
+  {cat:'📐 Odległość',text:'Oblicz odległość AB.',math:'\\(A(5,\\ 6),\\ B(-7,\\ -1)\\)',hint:'\\(\\Delta x=-12,\\Delta y=-7\\). Policz \\(\\sqrt{144+49}\\).',answers:['√193','sqrt(193)'],steps:['\\(d=\\sqrt{144+49}=\\sqrt{193}\\)'],ans:'d = √193'},
+  {cat:'📐 Odległość',text:'Oblicz odległość AB.',math:'\\(A(3+\\sqrt{3},\\ \\sqrt{7}),\\ B(\\sqrt{3},\\ {-4+\\sqrt{7}})\\)',hint:'\\(\\Delta x=-3,\\Delta y=-4\\) - trójka pitagorejska!',answers:['5'],steps:['\\(\\Delta x=-3,\\Delta y=-4 \\Rightarrow d=\\sqrt{9+16}=5\\)'],ans:'d = 5'},
+  {cat:'📐 Odległość',text:'Oblicz odległość AB.',math:'\\(A(-4,\\ 0),\\ B(-1,\\ -3)\\)',hint:'\\(\\Delta x=3,\\Delta y=-3\\Rightarrow\\sqrt{9+9}=3\\sqrt{2}\\)',answers:['3√2','3sqrt(2)'],steps:['\\(d=\\sqrt{9+9}=3\\sqrt{2}\\)'],ans:'d = 3√2'},
+  {cat:'📐 Odległość',text:'Oblicz odległość AC.',math:'\\(A(-4,\\ 0),\\ C(5,\\ 3)\\)',hint:'\\(\\Delta x=9,\\Delta y=3\\Rightarrow\\sqrt{81+9}\\)',answers:['3√10','3sqrt(10)','√90','sqrt(90)'],steps:['\\(d=\\sqrt{90}=3\\sqrt{10}\\)'],ans:'d = 3√10'},
+  {cat:'📐 Odległość',text:'Czy trójkąt ABC jest równoramienny? (tak/nie)',math:'\\(A(-1,\\ 2),\\ B(4,\\ 1),\\ C(2,\\ 4)\\)',hint:'|BC|=|AC|=√13. Dwa boki równe!',answers:['tak','yes','tak, jest'],steps:['|AB|=√26, |BC|=|AC|=√13 → TAK'],ans:'TAK'},
+  {cat:'📐 Odległość',text:'Czy trójkąt ABC jest prostokątny? (tak/nie)',math:'\\(A(-1,\\ 2),\\ B(4,\\ 1),\\ C(2,\\ 4)\\)',hint:'|BC|²+|AC|²=13+13=26=|AB|² - Pitagoras!',answers:['tak','yes'],steps:['13+13=26=|AB|² → Pitagoras ✓ → TAK'],ans:'TAK'},
+  {cat:'📐 Odległość',text:'Czy trójkąt ABC jest równoramienny? (tak/nie)',math:'\\(A(-3,\\ 0),\\ B(1,\\ -4),\\ C(5,\\ 4)\\)',hint:'|BC|=|AC|=4√5',answers:['tak','yes'],steps:['|BC|=|AC|=4√5 → TAK'],ans:'TAK'},
+  {cat:'📍 Środek odcinka',text:'Wyznacz środek odcinka AB. Format: (x,y)',math:'\\(A(-2,\\ -1),\\ B(6,\\ 3)\\)',hint:'S=((−2+6)/2, (−1+3)/2)',answers:['(2,1)','(2, 1)'],steps:['\\(S=(2,1)\\)'],ans:'S = (2, 1)'},
+  {cat:'📍 Środek odcinka',text:'Wyznacz środek odcinka AB. Format: (x,y)',math:'\\(A(-4,\\ 1),\\ B(5,\\ -8)\\)',hint:'\\(S_x=\\tfrac{1}{2},\\ S_y=-\\tfrac{7}{2}\\)',answers:['(1/2,-7/2)','(0.5,-3.5)','(1/2, -7/2)'],steps:['\\(S=(\\tfrac{1}{2},-\\tfrac{7}{2})\\)'],ans:'S = (1/2, −7/2)'},
+  {cat:'📍 Środek odcinka',text:'Wyznacz środek odcinka AB. Format: (x,y)',math:'\\(A(\\tfrac{1}{2},\\ -2),\\ B(3,\\ 3)\\)',hint:'\\(S_x=7/4,\\ S_y=1/2\\)',answers:['(7/4,1/2)','(7/4, 1/2)','(1.75,0.5)'],steps:['\\(S=(\\tfrac{7}{4},\\tfrac{1}{2})\\)'],ans:'S = (7/4, 1/2)'},
+  {cat:'📍 Środek odcinka',text:'Dany A(−4,−3), środek S(−1,−2). Oblicz |AB|.',math:'\\(A(-4,\\ -3),\\ S(-1,\\ -2)\\)',hint:'B=(2·S_x−x_A, ...)=(2,−1). Potem |AB|.',answers:['2√10','2sqrt(10)','√40'],steps:['B=(2,−1)','\\(|AB|=\\sqrt{36+4}=2\\sqrt{10}\\)'],ans:'|AB| = 2√10'},
+  {cat:'📍 Środek odcinka',text:'Wyznacz równanie symetralnej odcinka AB.',math:'\\(A(-2,\\ 6),\\ B(10,\\ 0)\\)',hint:'S=(4,3), kier. AB=−1/2, symetralna: m=2',answers:['y=2x-5','y = 2x - 5','2x-y-5=0'],steps:['S=(4,3), m_⊥=2','y−3=2(x−4) → y=2x−5'],ans:'y = 2x − 5'},
+  {cat:'📍 Środek odcinka',text:'Wyznacz równanie symetralnej odcinka AB.',math:'\\(A(-2,\\ -3),\\ B(4,\\ -1)\\)',hint:'S=(1,−2), kier. AB=1/3, symetralna: m=−3',answers:['y=-3x+1','y = -3x + 1','3x+y-1=0'],steps:['S=(1,−2), m_⊥=−3','y+2=−3(x−1) → y=−3x+1'],ans:'y = −3x + 1'},
+  {cat:'📏 Odległość od prostej',text:'Oblicz odległość punktu P od prostej l.',math:'\\(P(5,\\ 1),\\quad l:\\; y=x\\)',hint:'x−y=0 → d=|5−1|/√2=4/√2=2√2',answers:['2√2','2sqrt(2)','√8'],steps:['d=4/√2=2√2'],ans:'d = 2√2'},
+  {cat:'📏 Odległość od prostej',text:'Oblicz odległość punktu P od prostej l.',math:'\\(P(-1,\\ 3),\\quad l:\\; y=\\tfrac{4}{3}x-4\\)',hint:'4x−3y−12=0. d=|−4−9−12|/5=25/5',answers:['5'],steps:['4x−3y−12=0','d=25/5=5'],ans:'d = 5'},
+  {cat:'📏 Odległość od prostej',text:'Oblicz odległość między prostymi.',math:'\\(l_1: y=x-1 \\qquad l_2: y=x+3\\)',hint:'x−y−1=0 i x−y+3=0. d=|3−(−1)|/√2=4/√2',answers:['2√2','2sqrt(2)','√8'],steps:['d=4/√2=2√2'],ans:'d = 2√2'},
+  {cat:'📏 Odległość od prostej',text:'Oblicz odległość między prostymi.',math:'\\(l_1: y=2x-1 \\qquad l_2: y=2x+2\\)',hint:'2x−y−1=0 i 2x−y+2=0. d=3/√5',answers:['3√5/5','3/√5','3sqrt(5)/5'],steps:['d=3/√5=3√5/5'],ans:'d = 3√5/5'},
+  {cat:'📏 Odległość od prostej',text:'Oblicz odległość między prostymi.',math:'\\(l_1: x-2y-4=0 \\qquad l_2: y=\\tfrac{1}{2}x+6\\)',hint:'l₂: x−2y+12=0. d=16/√5=16√5/5',answers:['16√5/5','16/√5','(16√5)/5'],steps:['l₂: x−2y+12=0','d=16/√5=16√5/5'],ans:'d = 16√5/5'},
+  {cat:'📏 Odległość od prostej',text:'Oblicz pole trójkąta ABC.',math:'\\(A(-1,\\ 1),\\ B(3,\\ -2),\\ C(2,\\ 3)\\)',hint:'P=1/2|x_A(y_B−y_C)+x_B(y_C−y_A)+x_C(y_A−y_B)|',answers:['17/2','8.5','8,5'],steps:['P=1/2|5+6+6|=17/2=8.5'],ans:'P = 8,5'},
+  {cat:'📏 Odległość od prostej',text:'Oblicz pole trójkąta ABC.',math:'\\(A(-2,\\ 1),\\ B(3,\\ 6),\\ C(2,\\ -1)\\)',hint:'Wzór wyznacznikowy. Wynik=15.',answers:['15','15.0'],steps:['P=1/2|−14−6−10|=30/2=15'],ans:'P = 15'},
+];
+
+// ════════════════════════════════════════════════
+// SHIPS
+// ════════════════════════════════════════════════
+const SHIP_DEFS = [
+  {id:'carrier', name:'Lotniskowiec', icon:'🚢', size:4},
+  {id:'cruiser', name:'Krążownik',    icon:'⛴️', size:3},
+  {id:'dest1',   name:'Niszczyciel A',icon:'🛥️', size:2},
+  {id:'dest2',   name:'Niszczyciel B',icon:'🛥️', size:2},
+  {id:'sub',     name:'Łódź podwodna',icon:'🚤', size:1},
+];
+const SZ = 8;
+
+// ════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════
+let G = {};
+
+function startGame() {
+  document.getElementById('intro').style.display = 'none';
+  document.getElementById('topbar').style.display = 'flex';
+  document.getElementById('game-wrap').style.display = 'block';
+  G = {
+    cells: Array.from({length:SZ*SZ}, ()=>({shipId:null,shot:false,hit:false})),
+    ships: SHIP_DEFS.map(d=>({...d,cells:[],hits:0,sunk:false})),
+    qs: [...QS].sort(()=>Math.random()-0.5),
+    cellQ: {},
+    sel: null, curQ: null,
+    hintUsed:false, answered:false,
+    score:0, hits:0, misses:0, sunkCount:0,
+    results:[],
+  };
+  placeShips();
+  for (let i=0;i<SZ*SZ;i++) G.cellQ[i] = G.qs[i % G.qs.length];
+  buildGrid();
+  renderFleet();
+  updateStats();
+}
+
+// ════════════════════════════════════════════════
+// SHIP PLACEMENT
+// ════════════════════════════════════════════════
+function placeShips() {
+  G.ships.forEach(ship => {
+    let ok=false, tries=0;
+    while (!ok && tries++<2000) {
+      const h = Math.random()>0.5;
+      const r = Math.floor(Math.random()*(h?SZ:SZ-ship.size+1));
+      const c = Math.floor(Math.random()*(h?SZ-ship.size+1:SZ));
+      const cells=[];
+      for(let i=0;i<ship.size;i++) cells.push(h?r*SZ+c+i:(r+i)*SZ+c);
+      const clear=cells.every(idx=>{
+        const cr=Math.floor(idx/SZ),cc=idx%SZ;
+        for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){
+          const nr=cr+dr,nc=cc+dc;
+          if(nr>=0&&nr<SZ&&nc>=0&&nc<SZ&&G.cells[nr*SZ+nc].shipId) return false;
+        }
+        return true;
+      });
+      if(clear){ship.cells=cells;cells.forEach(i=>G.cells[i].shipId=ship.id);ok=true;}
+    }
+  });
+}
+
+// ════════════════════════════════════════════════
+// BUILD GRID
+// ════════════════════════════════════════════════
+function buildGrid() {
+  const con = document.getElementById('grid');
+  con.innerHTML = '';
+  const COLS = 'ABCDEFGH';
+
+  // corner
+  con.appendChild(el('div','gl-corner'));
+  // col labels
+  for(let c=0;c<SZ;c++) con.appendChild(el('div','gl-col',COLS[c]));
+  // rows
+  for(let r=0;r<SZ;r++){
+    con.appendChild(el('div','gl-row',String(r+1)));
+    for(let c=0;c<SZ;c++){
+      const idx=r*SZ+c;
+      const cell=document.createElement('div');
+      cell.className='cell';
+      cell.id='c'+idx;
+      const inner=document.createElement('div');
+      inner.className='cell-inner';
+      inner.id='ci'+idx;
+      cell.appendChild(inner);
+      cell.addEventListener('click',()=>onCell(idx));
+      con.appendChild(cell);
+    }
+  }
+  // Responsive: set row heights to match cell widths
+  requestAnimationFrame(fixGrid);
+  window.addEventListener('resize', fixGrid);
+}
+
+function fixGrid() {
+  const con = document.getElementById('grid');
+  if(!con) return;
+  // cell width via grid: total - 20px label - gaps
+  // Use first cell actual offsetWidth
+  const first = document.querySelector('.cell');
+  if(!first) return;
+  const w = first.offsetWidth;
+  // gl-row height
+  document.querySelectorAll('.gl-row').forEach(r=>r.style.height=w+'px');
+  // cell font size
+  const fs = Math.max(10, Math.floor(w*0.45));
+  document.querySelectorAll('.cell-inner').forEach(ci=>ci.style.fontSize=fs+'px');
+}
+
+function el(tag,cls,text=''){
+  const d=document.createElement(tag);
+  d.className=cls;
+  if(text) d.textContent=text;
+  return d;
+}
+
+// ════════════════════════════════════════════════
+// CELL CLICK
+// ════════════════════════════════════════════════
+function onCell(idx){
+  if(G.cells[idx].shot) return;
+  if(G.curQ && !G.answered){showToast('⚠ Najpierw odpowiedz!','t-miss',1300);return;}
+  // deselect prev
+  if(G.sel!==null){
+    const p=document.getElementById('c'+G.sel);
+    if(p) p.classList.remove('active-target');
+  }
+  G.sel=idx; G.answered=false; G.hintUsed=false;
+  G.curQ=G.cellQ[idx];
+  document.getElementById('c'+idx).classList.add('active-target');
+  showQ(idx);
+  // Mobile: scroll to question panel
+  if(window.innerWidth<=700){
+    setTimeout(()=>document.getElementById('qpanel').scrollIntoView({behavior:'smooth',block:'start'}),100);
+  }
+}
+
+// ════════════════════════════════════════════════
+// QUESTION
+// ════════════════════════════════════════════════
+function showQ(idx){
+  const q=G.curQ, lbl='ABCDEFGH'[idx%SZ]+(Math.floor(idx/SZ)+1);
+  document.getElementById('qpanel').innerHTML=`
+    <div class="panel-title">▶ Cel i pytanie</div>
+    <div class="q-target"><div class="q-dot"></div>CEL: ${lbl}</div>
+    <div class="q-cat">${q.cat}</div>
+    <div class="q-text">${q.text}</div>
+    <div class="q-math" id="qm">${q.math}</div>
+    <div id="ha"></div>
+    <div class="ans-row">
+      <input type="text" class="ans-inp" id="ainp" placeholder="Odpowiedź..." onkeydown="if(event.key==='Enter')fire()">
+      <button class="btn-fire" id="bfire" onclick="fire()">🎯 OGIEŃ</button>
+    </div>
+    <button class="btn-hint-q" id="hbtn" onclick="useHint()">💡 Podpowiedź (−4 pkt)</button>
+    <div id="fba"></div>
+    <div id="sola"></div>
+    <div id="nxta"></div>`;
+  renderMath();
+  if(window.innerWidth>700) document.getElementById('ainp').focus();
+}
+
+function useHint(){
+  if(G.hintUsed||G.answered) return;
+  G.hintUsed=true;
+  document.getElementById('hbtn').disabled=true;
+  document.getElementById('ha').innerHTML=`<div class="hint-box"><div class="hint-lbl">💡 PODPOWIEDŹ</div>${G.curQ.hint}</div>`;
+  renderMath();
+}
+
+// ════════════════════════════════════════════════
+// FIRE
+// ════════════════════════════════════════════════
+function norm(s){return s.trim().toLowerCase().replace(/\s+/g,'').replace(/,/g,'.').replace(/√/g,'sqrt');}
+
+function fire(){
+  if(G.answered||G.sel===null) return;
+  const inp=document.getElementById('ainp');
+  const val=inp.value.trim();
+  if(!val){inp.style.outline='2px solid var(--orange)';setTimeout(()=>inp.style.outline='',700);return;}
+
+  G.answered=true;
+  inp.disabled=true;
+  const bf=document.getElementById('bfire'); if(bf) bf.disabled=true;
+  const hb=document.getElementById('hbtn');  if(hb) hb.disabled=true;
+
+  const correct=G.curQ.answers.some(a=>norm(a)===norm(val));
+  const idx=G.sel;
+  const isShip=!!G.cells[idx].shipId;
+
+  inp.className='ans-inp '+(correct?'ok':'bad');
+  G.cells[idx].shot=true;
+  G.cells[idx].hit=correct&&isShip;
+
+  if(correct){
+    const pts=G.hintUsed?6:10;
+    G.score+=pts;
+    G.results.push({q:G.curQ,pts,correct:true,hit:isShip});
+
+    if(isShip){
+      G.hits++;
+      const ship=G.ships.find(s=>s.id===G.cells[idx].shipId);
+      ship.hits++;
+      const nowSunk=ship.hits>=ship.cells.length;
+
+      addFx(idx,'💥','fx-explode');
+      setTimeout(()=>{
+        if(nowSunk){
+          ship.sunk=true; G.sunkCount++;
+          ship.cells.forEach(ci=>refreshCell(ci));
+        } else {
+          refreshCell(idx);
+        }
+        renderFleet();
+        if(nowSunk){
+          showToast(`💥 ${ship.icon} ${ship.name.toUpperCase()} ZATOPIONY! +${pts}pkt`,'t-sunk',2600);
+          setTimeout(checkWin,2700);
+        } else {
+          showToast(`🎯 TRAFIENIE! +${pts}pkt`,'t-hit',1800);
+        }
+      },450);
+
+      setFb(`<div class="fb-wrap fb-ok">✓ TRAFIENIE! ${nowSunk?'💥 ZATOPIONY!':''}<br><span style="font-size:11px;opacity:.6">+${pts}pkt${G.hintUsed?' (z podpowiedzią)':''}</span></div>`);
+    } else {
+      G.misses++;
+      addFx(idx,'🌊','fx-splash');
+      setTimeout(()=>refreshCell(idx),500);
+      showToast(`✓ Poprawnie - woda! +${pts}pkt`,'t-miss',1800);
+      setFb(`<div class="fb-wrap fb-ok">✓ POPRAWNIE - woda 🌊<br><span style="font-size:11px;opacity:.6">+${pts}pkt</span></div>`);
+    }
+  } else {
+    G.misses++;
+    G.results.push({q:G.curQ,pts:0,correct:false,hit:isShip});
+    addFx(idx,'🌊','fx-splash');
+    setTimeout(()=>refreshCell(idx),500);
+    showToast('❌ BŁĄD - PUDŁO! 🌊','t-miss',1800);
+    setFb(`<div class="fb-wrap fb-bad">✗ BŁĄD - 0 pkt</div>`);
+    showSol();
+  }
+
+  updateStats();
+  setTimeout(()=>{
+    const nx=document.getElementById('nxta');
+    if(nx) nx.innerHTML=`<button class="btn-next-q" onclick="clearSel()">→ Wybierz kolejny cel</button>`;
+    if(correct){
+      const fb=document.getElementById('fba');
+      if(fb) fb.insertAdjacentHTML('afterend',`<button class="btn-hint-q" style="margin-top:6px" onclick="showSol()">📖 Rozwiązanie</button>`);
+    }
+  },500);
+}
+
+function setFb(html){
+  const el=document.getElementById('fba');
+  if(el) el.innerHTML=html;
+}
+function showSol(){
+  const sa=document.getElementById('sola');
+  if(!sa||!G.curQ) return;
+  sa.innerHTML=`<div class="sol-box"><div class="sol-lbl">📖 ROZWIĄZANIE</div>${G.curQ.steps.map((s,i)=>`<div class="sol-step">${i+1}. ${s}</div>`).join('')}<div class="sol-ans">✓ ${G.curQ.ans}</div></div>`;
+  renderMath();
+}
+function clearSel(){
+  G.sel=null; G.curQ=null; G.answered=false; G.hintUsed=false;
+  document.getElementById('qpanel').innerHTML=`<div class="panel-title">▶ Cel i pytanie</div><div class="idle-msg"><div class="idle-icon">🎯</div>Wybierz kolejny cel<br>na mapie wroga</div>`;
+  if(window.innerWidth<=700) window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ════════════════════════════════════════════════
+// CELL VISUALS
+// ════════════════════════════════════════════════
+function addFx(idx,emoji,cls){
+  const cell=document.getElementById('c'+idx);
+  if(!cell) return;
+  cell.classList.remove('active-target');
+  const fx=document.createElement('div');
+  fx.className='cell-fx';
+  fx.innerHTML=`<span class="${cls}">${emoji}</span>`;
+  cell.appendChild(fx);
+  setTimeout(()=>fx.remove(),620);
+}
+function refreshCell(idx){
+  const cell=document.getElementById('c'+idx);
+  const inner=document.getElementById('ci'+idx);
+  if(!cell||!inner) return;
+  cell.querySelectorAll('.cell-fx').forEach(n=>n.remove());
+  cell.classList.remove('active-target');
+  cell.className='cell shot';
+  inner.textContent='';
+  const d=G.cells[idx];
+  if(d.hit){
+    const ship=G.ships.find(s=>s.id===d.shipId);
+    if(ship&&ship.sunk){cell.classList.add('sunk');inner.textContent=ship.icon;}
+    else{cell.classList.add('hit');inner.textContent='🔥';}
+  } else {
+    cell.classList.add('miss');inner.textContent='·';
+  }
+  fixGrid();
+}
+
+// ════════════════════════════════════════════════
+// FLEET
+// ════════════════════════════════════════════════
+function renderFleet(){
+  const fl=document.getElementById('fleet');
+  fl.innerHTML='';
+  G.ships.forEach(ship=>{
+    const div=document.createElement('div');
+    div.className='fleet-row'+(ship.sunk?' sunk-ship':'');
+    const hp=ship.cells.map((_,i)=>`<div class="hp${i<ship.hits?' hit':''}"></div>`).join('');
+    const st=ship.sunk?'<span class="fstatus sunk">ZATOPIONY</span>':ship.hits>0?'<span class="fstatus damaged">USZKODZONY</span>':'<span class="fstatus alive">AKTYWNY</span>';
+    div.innerHTML=`<div class="fi">${ship.icon}</div><div class="finfo"><div class="fname${ship.sunk?' sunk':''}">${ship.name}</div><div class="fhp">${hp}</div></div><div>${st}</div>`;
+    fl.appendChild(div);
+  });
+}
+
+// ════════════════════════════════════════════════
+// STATS / TOAST / WIN
+// ════════════════════════════════════════════════
+function updateStats(){
+  document.getElementById('s-score').textContent=G.score;
+  document.getElementById('s-hits').textContent=G.hits;
+  document.getElementById('s-miss').textContent=G.misses;
+  document.getElementById('s-sunk').textContent=G.sunkCount;
+}
+let _tt;
+function showToast(msg,type,ms=2000){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='show '+type;
+  clearTimeout(_tt); _tt=setTimeout(()=>t.className='',ms);
+}
+function checkWin(){if(G.sunkCount>=G.ships.length) setTimeout(showEnd,800);}
+function showEnd(){
+  const maxP=Math.max(G.results.length*10,1);
+  const pct=Math.round(G.score/maxP*100);
+  const trophy=pct>=90?'🏅':pct>=70?'⭐':pct>=50?'🎖️':'🚢';
+  const title=pct>=90?'WYBITNY ADMIRAŁ!':pct>=70?'DOBRY OFICER!':pct>=50?'MARYNARZ':'KADET';
+  document.getElementById('e-trophy').textContent=trophy;
+  document.getElementById('e-title').textContent=title;
+  document.getElementById('e-score').textContent=G.score;
+  document.getElementById('e-sub').textContent=`punktów · ${G.hits} trafień · ${G.sunkCount}/5 statków`;
+  const cats={};
+  G.results.forEach(r=>{if(!cats[r.q.cat])cats[r.q.cat]={p:0,n:0};cats[r.q.cat].p+=r.pts;cats[r.q.cat].n++;});
+  const acc=G.results.length?Math.round(G.results.filter(r=>r.correct).length/G.results.length*100):0;
+  let rows=Object.entries(cats).map(([c,d])=>`<div class="end-row"><span>${c}</span><span class="end-pts" style="color:var(--cyan)">${d.p}pkt/${d.n}pyt.</span></div>`).join('');
+  rows+=`<div class="end-row"><span>Skuteczność</span><span class="end-pts" style="color:var(--yellow)">${acc}%</span></div>`;
+  rows+=`<div class="end-row"><span>Pudła</span><span class="end-pts" style="color:var(--red)">${G.misses}</span></div>`;
+  document.getElementById('e-card').innerHTML=rows;
+  document.getElementById('end-screen').classList.add('show');
+}
+
+function renderMath(){if(window.MathJax) MathJax.typesetPromise().catch(()=>{});}
+</script>
+
+</body>
+</html>
